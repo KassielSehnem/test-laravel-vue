@@ -14,12 +14,19 @@ class PostController extends Controller
     public function index(Request $request)
     {
         $posts = Post::with('user');
+        $limit = (int) $request->query('limit', 10);
 
         if ($userId = $request->query('user_id')) {
             $posts->where('user_id', $userId);
         }
+        
+        $paginatedPosts = $posts->orderBy('id', 'DESC')->cursorPaginate($limit);
 
-        return response()->json(PostResource::collection($posts->latest()->get()));
+        return response()->json([
+            'data' => PostResource::collection($paginatedPosts),
+            'next_cursor' => $paginatedPosts->nextCursor()?->encode(),
+            'has_more' => $paginatedPosts->hasMorePages()
+        ]);
     }
 
     public function store(Request $request)
